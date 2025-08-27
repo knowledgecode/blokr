@@ -121,6 +121,44 @@ describe('Blokr Singleton', () => {
       // Verify final state is correct
       expect(() => blokr.unlock()).not.toThrow();
     });
+
+    it('should immediately unlock when abort is true', () => {
+      blokr.lock();
+      blokr.lock();
+      blokr.lock(); // Counter = 3
+
+      blokr.unlock(true); // Should reset counter to 0 immediately
+
+      expect(blokr.isLocked()).toBe(false);
+    });
+
+    it('should clear timeout when abort is true', () => {
+      const clearTimeoutSpy = vi.spyOn(self, 'clearTimeout');
+      blokr.setTimeout(5000);
+
+      blokr.lock();
+      blokr.lock(); // Counter = 2
+      blokr.unlock(true); // Should clear timeout and reset counter
+
+      expect(clearTimeoutSpy).toHaveBeenCalled();
+      expect(blokr.isLocked()).toBe(false);
+      clearTimeoutSpy.mockRestore();
+    });
+
+    it('should work normally when abort is false (default)', () => {
+      blokr.lock();
+      blokr.lock();
+      blokr.lock(); // Counter = 3
+
+      blokr.unlock(false); // Counter = 2
+      expect(blokr.isLocked()).toBe(true);
+
+      blokr.unlock(); // Counter = 1 (default false)
+      expect(blokr.isLocked()).toBe(true);
+
+      blokr.unlock(); // Counter = 0
+      expect(blokr.isLocked()).toBe(false);
+    });
   });
 
   describe('setTimeout()', () => {

@@ -76,9 +76,27 @@ blokr.unlock();  // Call count: 1 (still blocked)
 blokr.unlock();  // Call count: 0 (unblocked)
 ```
 
-### `blokr.unlock()`
+### `blokr.unlock(abort?: boolean)`
 
-Unblocks user interactions. Decrements the internal counter.
+Unblocks user interactions. By default, decrements the internal counter. When `abort` is `true`, immediately resets the counter to zero and releases all locks.
+
+**Parameters:**
+
+- `abort` (optional): When `true`, immediately unlocks all locks. Default: `false`
+
+```typescript
+// Normal unlock behavior (decrements counter)
+blokr.lock();    // Lock count: 1
+blokr.lock();    // Lock count: 2
+
+blokr.unlock();  // Lock count: 1 (still locked)
+blokr.unlock();  // Lock count: 0 (unlocked)
+
+// Emergency unlock with abort
+blokr.lock();        // Lock count: 1
+blokr.lock();        // Lock count: 2
+blokr.unlock(true);  // Lock count: 0 (immediately unlocked)
+```
 
 ### `blokr.isLocked(): boolean`
 

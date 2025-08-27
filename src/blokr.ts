@@ -58,12 +58,18 @@ class Blokr {
   }
 
   /**
-   * Stops preventing user interactions.
+   * Decrements the internal counter and releases the lock when the counter reaches zero.
+   * If abort is true, the counter is reset to zero immediately, effectively releasing the lock.
+   * Clears any pending timeout and triggers the unlock event.
+   * @param abort - If true, immediately resets the counter to zero and releases the lock
    */
-  unlock () {
+  unlock (abort = false) {
     if (this._counter > 0) {
       this._counter--;
 
+      if (abort) {
+        this._counter = 0;
+      }
       if (this._counter === 0) {
         if (this._timerId) {
           self.clearTimeout(this._timerId);
