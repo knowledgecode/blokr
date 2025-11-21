@@ -38,7 +38,7 @@ class Blokr {
 
   /**
    * Checks if user interactions are currently prevented.
-   * @returns {boolean} - Returns true if interactions are blocked, false otherwise.
+   * @returns {boolean} Returns true if interactions are blocked, false otherwise.
    */
   isLocked () {
     return this._counter > 0;
@@ -47,7 +47,7 @@ class Blokr {
   /**
    * Sets the timeout duration for automatic unlock.
    * @param timeout - The timeout in milliseconds. Set to 0 to disable automatic unlock. Negative values are treated as 0.
-   * @returns {boolean} - Returns true if the timeout was set successfully, false if currently locked.
+   * @returns {boolean} Returns true if the timeout was set successfully, false if currently locked.
    */
   setTimeout(timeout: number) {
     if (!this.isLocked()) {

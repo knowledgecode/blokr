@@ -10,7 +10,9 @@ class Lock {
   constructor () {
     this._locked = false;
     this._listener = this._listener.bind(this);
-    eventNames.forEach(eventName => self.addEventListener(eventName, this._listener, options));
+    if (typeof self !== 'undefined') {
+      eventNames.forEach(eventName => self.addEventListener(eventName, this._listener, options));
+    }
   }
 
   private _listener (evt: Event) {
