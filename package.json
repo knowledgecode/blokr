@@ -1,6 +1,6 @@
 {
   "name": "blokr",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Lightweight library to block user interactions in browsers",
   "keywords": [
     "event",
@@ -44,13 +44,14 @@
   },
   "devDependencies": {
     "@rollup/plugin-terser": "^0.4.4",
-    "@vitest/browser": "^3.2.4",
-    "eslint": "^9.34.0",
-    "playwright": "^1.55.0",
+    "@vitest/browser": "^4.0.12",
+    "@vitest/browser-playwright": "^4.0.12",
+    "eslint": "^9.39.1",
+    "playwright": "^1.56.1",
     "rollup-plugin-license": "^3.6.0",
-    "typescript-eslint": "^8.41.0",
-    "vite": "^7.1.3",
+    "typescript-eslint": "^8.47.0",
+    "vite": "^7.2.4",
     "vite-plugin-dts": "^4.5.4",
-    "vitest": "^3.2.4"
+    "vitest": "^4.0.12"
   }
 }
