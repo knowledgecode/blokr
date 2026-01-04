@@ -1,4 +1,4 @@
 .DS_Store
-CLAUDE.md
+.vscode/
 dist/
 node_modules/
