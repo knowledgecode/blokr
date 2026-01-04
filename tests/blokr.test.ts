@@ -1,251 +1,293 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import blokr from '../src/blokr.ts';
 
-describe('Blokr Singleton', () => {
-  beforeEach(() => {
-    // Reset the singleton state
-    blokr.setTimeout(10000);
-    // Unlock any existing locks
-    while (blokr.isLocked()) {
-      blokr.unlock();
-    }
-  });
-
+describe('Blokr Factory Function', () => {
   afterEach(() => {
     // Clean up any locks after each test
-    while (blokr.isLocked()) {
-      blokr.unlock();
+    const globalInstance = blokr();
+    if (globalInstance.isLocked()) {
+      globalInstance.unlock();
     }
   });
 
-  describe('Singleton Instance', () => {
-    it('should be available as singleton', () => {
-      expect(blokr).toBeDefined();
-      expect(typeof blokr.lock).toBe('function');
-      expect(typeof blokr.unlock).toBe('function');
-      expect(typeof blokr.isLocked).toBe('function');
-      expect(typeof blokr.setTimeout).toBe('function');
+  describe('Factory Behavior', () => {
+    it('should return a Blokr instance', () => {
+      const instance = blokr();
+      expect(instance).toBeDefined();
+      expect(typeof instance.lock).toBe('function');
+      expect(typeof instance.unlock).toBe('function');
+      expect(typeof instance.isLocked).toBe('function');
+    });
+
+    it('should return the same instance for global (no target)', () => {
+      const instance1 = blokr();
+      const instance2 = blokr();
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should return the same instance for same element', () => {
+      const element = document.createElement('div');
+      const instance1 = blokr(element);
+      const instance2 = blokr(element);
+      expect(instance1).toBe(instance2);
+    });
+
+    it('should return different instances for different elements', () => {
+      const element1 = document.createElement('div');
+      const element2 = document.createElement('div');
+      const instance1 = blokr(element1);
+      const instance2 = blokr(element2);
+      expect(instance1).not.toBe(instance2);
     });
   });
 
   describe('lock()', () => {
-    it('should increment counter on first lock', () => {
-      blokr.lock();
-      // We can test the behavior indirectly by checking unlock behavior
-      blokr.unlock();
-      // If lock/unlock worked correctly, no exception should be thrown
-      expect(() => blokr.unlock()).not.toThrow();
+    it('should lock and return true on first call', () => {
+      const instance = blokr();
+      const result = instance.lock();
+      expect(result).toBe(true);
+      expect(instance.isLocked()).toBe(true);
+      instance.unlock();
     });
 
-    it('should increment counter on multiple locks', () => {
-      blokr.lock();
-      blokr.lock();
-      blokr.lock();
-      // Counter should be 3, test through unlock behavior
-      blokr.unlock();
-      blokr.unlock();
-      blokr.unlock();
-      // Should be fully unlocked after 3 unlocks
-      expect(() => blokr.unlock()).not.toThrow();
+    it('should return false if already locked', () => {
+      const instance = blokr();
+      const result1 = instance.lock();
+      expect(result1).toBe(true);
+
+      const result2 = instance.lock();
+      expect(result2).toBe(false);
+      expect(instance.isLocked()).toBe(true);
+
+      instance.unlock();
     });
 
-    it('should set timeout when timeout > 0', () => {
-      const setTimeoutSpy = vi.spyOn(self, 'setTimeout');
-      blokr.setTimeout(5000);
+    it('should accept timeout option', () => {
+      const instance = blokr();
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-      blokr.lock();
+      instance.lock({ timeout: 5000 });
 
       expect(setTimeoutSpy).toHaveBeenCalledWith(expect.any(Function), 5000);
+      expect(instance.isLocked()).toBe(true);
+
       setTimeoutSpy.mockRestore();
+      instance.unlock();
     });
 
     it('should not set timeout when timeout is 0', () => {
-      const setTimeoutSpy = vi.spyOn(self, 'setTimeout');
-      blokr.setTimeout(0);
+      const instance = blokr();
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-      blokr.lock();
+      instance.lock({ timeout: 0 });
 
       expect(setTimeoutSpy).not.toHaveBeenCalled();
+      expect(instance.isLocked()).toBe(true);
+
       setTimeoutSpy.mockRestore();
+      instance.unlock();
     });
 
-    it('should clear existing timeout on subsequent locks', () => {
-      const clearTimeoutSpy = vi.spyOn(self, 'clearTimeout');
-      blokr.setTimeout(5000);
+    it('should accept scope option', () => {
+      const instance = blokr(document.createElement('div'));
 
-      blokr.lock();
-      blokr.lock();
+      const result1 = instance.lock({ scope: 'inside' });
+      expect(result1).toBe(true);
+      instance.unlock();
 
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-      clearTimeoutSpy.mockRestore();
+      const result2 = instance.lock({ scope: 'outside' });
+      expect(result2).toBe(true);
+      instance.unlock();
+
+      const result3 = instance.lock({ scope: 'self' });
+      expect(result3).toBe(true);
+      instance.unlock();
+    });
+
+    it('should use default scope "inside" if not specified', () => {
+      const instance = blokr(document.createElement('div'));
+      const result = instance.lock();
+      expect(result).toBe(true);
+      expect(instance.isLocked()).toBe(true);
+      instance.unlock();
     });
   });
 
   describe('unlock()', () => {
-    it('should decrement counter when locked', () => {
-      blokr.lock();
-      blokr.unlock();
-      // Counter should be 0 now, verify by checking unlock doesn't throw
-      expect(() => blokr.unlock()).not.toThrow();
+    it('should unlock when locked', () => {
+      const instance = blokr();
+      instance.lock();
+      expect(instance.isLocked()).toBe(true);
+
+      instance.unlock();
+      expect(instance.isLocked()).toBe(false);
     });
 
-    it('should not decrement counter when not locked', () => {
-      blokr.unlock(); // Should do nothing
-      blokr.unlock(); // Should do nothing
-      // Should not throw errors when unlocking without locking
-      expect(() => blokr.unlock()).not.toThrow();
+    it('should do nothing when not locked', () => {
+      const instance = blokr();
+      expect(instance.isLocked()).toBe(false);
+
+      instance.unlock();
+      expect(instance.isLocked()).toBe(false);
+
+      // Should not throw
+      expect(() => instance.unlock()).not.toThrow();
     });
 
-    it('should clear timeout when counter reaches 0', () => {
-      const clearTimeoutSpy = vi.spyOn(self, 'clearTimeout');
-      blokr.setTimeout(5000);
+    it('should clear timeout when unlocking', () => {
+      const instance = blokr();
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
 
-      blokr.lock();
-      blokr.unlock();
+      instance.lock({ timeout: 5000 });
+      instance.unlock();
 
       expect(clearTimeoutSpy).toHaveBeenCalled();
       clearTimeoutSpy.mockRestore();
     });
 
-    it('should handle multiple lock/unlock cycles', () => {
-      blokr.lock();
-      blokr.lock();
-      blokr.lock(); // Counter = 3
+    it('should clear timeout only when timeout was set', () => {
+      const instance = blokr();
+      const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
 
-      blokr.unlock(); // Counter = 2
-      blokr.unlock(); // Counter = 1
-      blokr.unlock(); // Counter = 0, should unlock
+      instance.lock({ timeout: 0 });
+      instance.unlock();
 
-      blokr.unlock(); // Should do nothing (counter already 0)
-
-      // Verify final state is correct
-      expect(() => blokr.unlock()).not.toThrow();
-    });
-
-    it('should immediately unlock when abort is true', () => {
-      blokr.lock();
-      blokr.lock();
-      blokr.lock(); // Counter = 3
-
-      blokr.unlock(true); // Should reset counter to 0 immediately
-
-      expect(blokr.isLocked()).toBe(false);
-    });
-
-    it('should clear timeout when abort is true', () => {
-      const clearTimeoutSpy = vi.spyOn(self, 'clearTimeout');
-      blokr.setTimeout(5000);
-
-      blokr.lock();
-      blokr.lock(); // Counter = 2
-      blokr.unlock(true); // Should clear timeout and reset counter
-
-      expect(clearTimeoutSpy).toHaveBeenCalled();
-      expect(blokr.isLocked()).toBe(false);
+      expect(clearTimeoutSpy).not.toHaveBeenCalled();
       clearTimeoutSpy.mockRestore();
-    });
-
-    it('should work normally when abort is false (default)', () => {
-      blokr.lock();
-      blokr.lock();
-      blokr.lock(); // Counter = 3
-
-      blokr.unlock(false); // Counter = 2
-      expect(blokr.isLocked()).toBe(true);
-
-      blokr.unlock(); // Counter = 1 (default false)
-      expect(blokr.isLocked()).toBe(true);
-
-      blokr.unlock(); // Counter = 0
-      expect(blokr.isLocked()).toBe(false);
-    });
-  });
-
-  describe('setTimeout()', () => {
-    it('should set timeout when not locked', () => {
-      const result = blokr.setTimeout(5000);
-      expect(result).toBe(true);
-    });
-
-    it('should not set timeout when locked', () => {
-      blokr.lock();
-      const result = blokr.setTimeout(5000);
-      expect(result).toBe(false);
-    });
-
-    it('should handle negative timeout values', () => {
-      const result = blokr.setTimeout(-1000);
-      expect(result).toBe(true);
-      // Verify timeout was set to 0 by checking lock behavior
-      const setTimeoutSpy = vi.spyOn(self, 'setTimeout');
-      blokr.lock();
-      expect(setTimeoutSpy).not.toHaveBeenCalled();
-      setTimeoutSpy.mockRestore();
     });
   });
 
   describe('isLocked()', () => {
     it('should return false when not locked', () => {
-      expect(blokr.isLocked()).toBe(false);
+      const instance = blokr();
+      expect(instance.isLocked()).toBe(false);
     });
 
     it('should return true when locked', () => {
-      blokr.lock();
-      expect(blokr.isLocked()).toBe(true);
+      const instance = blokr();
+      instance.lock();
+      expect(instance.isLocked()).toBe(true);
+      instance.unlock();
     });
 
     it('should return false after unlock', () => {
-      blokr.lock();
-      blokr.unlock();
-      expect(blokr.isLocked()).toBe(false);
-    });
-
-    it('should return true until all locks are released', () => {
-      blokr.lock();
-      blokr.lock();
-      blokr.lock();
-      
-      expect(blokr.isLocked()).toBe(true);
-      blokr.unlock();
-      expect(blokr.isLocked()).toBe(true);
-      blokr.unlock();
-      expect(blokr.isLocked()).toBe(true);
-      blokr.unlock();
-      expect(blokr.isLocked()).toBe(false);
+      const instance = blokr();
+      instance.lock();
+      instance.unlock();
+      expect(instance.isLocked()).toBe(false);
     });
   });
 
-  describe('timeout behavior', () => {
-    it('should auto-unlock after timeout', async () => {
+  describe('Timeout Behavior', () => {
+    it('should auto-unlock after timeout', () => {
       vi.useFakeTimers();
 
-      blokr.setTimeout(1000);
-      blokr.lock();
+      const instance = blokr();
+      instance.lock({ timeout: 1000 });
+
+      expect(instance.isLocked()).toBe(true);
 
       // Fast-forward time
       vi.advanceTimersByTime(1000);
 
       // Should be unlocked after timeout
-      expect(blokr.isLocked()).toBe(false);
+      expect(instance.isLocked()).toBe(false);
 
       vi.useRealTimers();
     });
 
-    it('should reset counter to 0 on timeout', async () => {
+    it('should not set timeout when timeout is 0', () => {
+      const instance = blokr();
+      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+
+      instance.lock({ timeout: 0 });
+
+      expect(setTimeoutSpy).not.toHaveBeenCalled();
+
+      setTimeoutSpy.mockRestore();
+      instance.unlock();
+    });
+
+    it('should clear timeout on manual unlock', () => {
       vi.useFakeTimers();
 
-      blokr.setTimeout(1000);
-      blokr.lock();
-      blokr.lock();
-      blokr.lock(); // Counter = 3
+      const instance = blokr();
+      instance.lock({ timeout: 5000 });
 
-      // Fast-forward time
-      vi.advanceTimersByTime(1000);
+      // Unlock before timeout
+      instance.unlock();
 
-      // After timeout, should be fully unlocked
-      expect(blokr.isLocked()).toBe(false);
+      // Fast-forward past the timeout
+      vi.advanceTimersByTime(5000);
+
+      // Should still be unlocked (timeout was cleared)
+      expect(instance.isLocked()).toBe(false);
 
       vi.useRealTimers();
+    });
+  });
+
+  describe('Independent Instances', () => {
+    it('should support independent locks on different elements', () => {
+      const element1 = document.createElement('div');
+      const element2 = document.createElement('div');
+
+      const instance1 = blokr(element1);
+      const instance2 = blokr(element2);
+
+      instance1.lock();
+      expect(instance1.isLocked()).toBe(true);
+      expect(instance2.isLocked()).toBe(false);
+
+      instance2.lock();
+      expect(instance1.isLocked()).toBe(true);
+      expect(instance2.isLocked()).toBe(true);
+
+      instance1.unlock();
+      expect(instance1.isLocked()).toBe(false);
+      expect(instance2.isLocked()).toBe(true);
+
+      instance2.unlock();
+    });
+
+    it('should maintain independent timeout states', () => {
+      vi.useFakeTimers();
+
+      const element1 = document.createElement('div');
+      const element2 = document.createElement('div');
+
+      const instance1 = blokr(element1);
+      const instance2 = blokr(element2);
+
+      instance1.lock({ timeout: 1000 });
+      instance2.lock({ timeout: 2000 });
+
+      vi.advanceTimersByTime(1000);
+      expect(instance1.isLocked()).toBe(false);
+      expect(instance2.isLocked()).toBe(true);
+
+      vi.advanceTimersByTime(1000);
+      expect(instance1.isLocked()).toBe(false);
+      expect(instance2.isLocked()).toBe(false);
+
+      vi.useRealTimers();
+    });
+  });
+
+  describe('Global Instance', () => {
+    it('should block all events when no target specified', () => {
+      const instance = blokr();
+      instance.lock();
+      expect(instance.isLocked()).toBe(true);
+      instance.unlock();
+    });
+
+    it('should use default scope "inside" for global instance', () => {
+      const instance = blokr();
+      // Global instance with no target should still work (no filtering)
+      const result = instance.lock();
+      expect(result).toBe(true);
+      instance.unlock();
     });
   });
 });

@@ -1,188 +1,378 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import blokr from '../src/blokr.ts';
 
 describe('Event Blocking Integration', () => {
-  let testElement: HTMLElement;
-
-  beforeEach(() => {
-    // Reset singleton state
-    while (blokr.isLocked()) {
-      blokr.unlock();
-    }
-    testElement = document.createElement('button');
-    testElement.textContent = 'Test Button';
-    document.body.appendChild(testElement);
-  });
-
   afterEach(() => {
-    // Clean up locks
-    while (blokr.isLocked()) {
-      blokr.unlock();
+    // Clean up any locks after each test
+    const globalInstance = blokr();
+    if (globalInstance.isLocked()) {
+      globalInstance.unlock();
     }
-    document.body.removeChild(testElement);
   });
 
-  describe('Mousedown Events', () => {
-    it('should block mousedown events when locked', () => {
-      const mousedownHandler = vi.fn();
-      testElement.addEventListener('mousedown', mousedownHandler);
+  describe('Global Event Blocking', () => {
+    it('should block mousedown events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('button');
+      element.addEventListener('mousedown', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate mousedown event
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      testElement.dispatchEvent(mousedownEvent);
+      element.dispatchEvent(event);
 
-      expect(mousedownHandler).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
     });
 
     it('should allow mousedown events when unlocked', () => {
-      const mousedownHandler = vi.fn();
-      testElement.addEventListener('mousedown', mousedownHandler);
+      const handler = vi.fn();
+      const element = document.createElement('button');
+      element.addEventListener('mousedown', handler);
+      document.body.appendChild(element);
 
       // Don't lock
 
-      // Simulate mousedown event
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      testElement.dispatchEvent(mousedownEvent);
+      element.dispatchEvent(event);
 
-      expect(mousedownHandler).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+
+      document.body.removeChild(element);
     });
-  });
 
-  describe('Keyboard Events', () => {
-    it('should block keydown events when locked', () => {
-      const keydownHandler = vi.fn();
-      document.addEventListener('keydown', keydownHandler);
+    it('should block keydown events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('input');
+      element.addEventListener('keydown', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate keydown event
-      const keydownEvent = new KeyboardEvent('keydown', {
+      const event = new KeyboardEvent('keydown', {
         key: 'Enter',
         bubbles: true,
         cancelable: true
       });
 
-      document.dispatchEvent(keydownEvent);
+      element.dispatchEvent(event);
 
-      expect(keydownHandler).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
 
-      document.removeEventListener('keydown', keydownHandler);
+      instance.unlock();
+      document.body.removeChild(element);
     });
 
-    it('should allow keydown events when unlocked', () => {
-      const keydownHandler = vi.fn();
-      document.addEventListener('keydown', keydownHandler);
+    it('should block contextmenu events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('div');
+      element.addEventListener('contextmenu', handler);
+      document.body.appendChild(element);
 
-      // Don't lock
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate keydown event
-      const keydownEvent = new KeyboardEvent('keydown', {
-        key: 'Enter',
+      const event = new MouseEvent('contextmenu', {
         bubbles: true,
         cancelable: true
       });
 
-      document.dispatchEvent(keydownEvent);
+      element.dispatchEvent(event);
 
-      expect(keydownHandler).toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
 
-      document.removeEventListener('keydown', keydownHandler);
-    });
-  });
-
-  describe('Mouse Events', () => {
-
-    it('should block contextmenu events when locked', () => {
-      const contextmenuHandler = vi.fn();
-      testElement.addEventListener('contextmenu', contextmenuHandler);
-
-      blokr.lock();
-
-      // Simulate contextmenu event
-      const contextmenuEvent = new MouseEvent('contextmenu', {
-        bubbles: true,
-        cancelable: true
-      });
-
-      testElement.dispatchEvent(contextmenuEvent);
-
-      expect(contextmenuHandler).not.toHaveBeenCalled();
+      instance.unlock();
+      document.body.removeChild(element);
     });
 
-    it('should block wheel events when locked', () => {
-      const wheelHandler = vi.fn();
-      testElement.addEventListener('wheel', wheelHandler);
+    it('should block wheel events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('div');
+      element.addEventListener('wheel', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate wheel event
-      const wheelEvent = new WheelEvent('wheel', {
+      const event = new WheelEvent('wheel', {
         bubbles: true,
         cancelable: true,
         deltaY: 100
       });
 
-      testElement.dispatchEvent(wheelEvent);
+      element.dispatchEvent(event);
 
-      expect(wheelHandler).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
     });
-  });
 
-  describe('Touch Events', () => {
-    it('should block touchstart events when locked', () => {
-      const touchstartHandler = vi.fn();
-      testElement.addEventListener('touchstart', touchstartHandler);
+    it('should block touchstart events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('div');
+      element.addEventListener('touchstart', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate touchstart event
-      const touchstartEvent = new TouchEvent('touchstart', {
+      const event = new TouchEvent('touchstart', {
         bubbles: true,
         cancelable: true,
         touches: [new Touch({
           identifier: 0,
-          target: testElement,
+          target: element,
           clientX: 100,
           clientY: 100
         })]
       });
 
-      testElement.dispatchEvent(touchstartEvent);
+      element.dispatchEvent(event);
 
-      expect(touchstartHandler).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
     });
 
-    it('should block touchmove events when locked', () => {
-      const touchmoveHandler = vi.fn();
-      testElement.addEventListener('touchmove', touchmoveHandler);
+    it('should block touchmove events when locked globally', () => {
+      const handler = vi.fn();
+      const element = document.createElement('div');
+      element.addEventListener('touchmove', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
+      const instance = blokr();
+      instance.lock();
 
-      // Simulate touchmove event
-      const touchmoveEvent = new TouchEvent('touchmove', {
+      const event = new TouchEvent('touchmove', {
         bubbles: true,
         cancelable: true,
         touches: [new Touch({
           identifier: 0,
-          target: testElement,
+          target: element,
           clientX: 110,
           clientY: 110
         })]
       });
 
-      testElement.dispatchEvent(touchmoveEvent);
+      element.dispatchEvent(event);
 
-      expect(touchmoveHandler).not.toHaveBeenCalled();
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
+    });
+  });
+
+  describe('Target-specific Event Blocking (scope: inside)', () => {
+    it('should block events inside target with default scope', () => {
+      const container = document.createElement('div');
+      const button = document.createElement('button');
+      const handler = vi.fn();
+      button.addEventListener('mousedown', handler);
+      container.appendChild(button);
+      document.body.appendChild(container);
+
+      const instance = blokr(container);
+      instance.lock();
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      button.dispatchEvent(event);
+
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(container);
+    });
+
+    it('should allow events inside target when unlocked', () => {
+      const container = document.createElement('div');
+      const button = document.createElement('button');
+      const handler = vi.fn();
+      button.addEventListener('mousedown', handler);
+      container.appendChild(button);
+      document.body.appendChild(container);
+
+      const instance = blokr(container);
+      instance.lock();
+      instance.unlock();
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      button.dispatchEvent(event);
+
+      expect(handler).toHaveBeenCalled();
+
+      document.body.removeChild(container);
+    });
+
+    it('should block events on child elements of target', () => {
+      const container = document.createElement('div');
+      const child = document.createElement('span');
+      const handler = vi.fn();
+      child.addEventListener('mousedown', handler);
+      container.appendChild(child);
+      document.body.appendChild(container);
+
+      const instance = blokr(container);
+      instance.lock({ scope: 'inside' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      child.dispatchEvent(event);
+
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(container);
+    });
+  });
+
+  describe('Target-specific Event Blocking (scope: outside)', () => {
+    it('should block events outside target', () => {
+      const container = document.createElement('div');
+      const outside = document.createElement('button');
+      const handler = vi.fn();
+      outside.addEventListener('mousedown', handler);
+      document.body.appendChild(container);
+      document.body.appendChild(outside);
+
+      const instance = blokr(container);
+      instance.lock({ scope: 'outside' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      outside.dispatchEvent(event);
+
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(container);
+      document.body.removeChild(outside);
+    });
+
+    it('should allow events inside target with scope outside', () => {
+      const container = document.createElement('div');
+      const button = document.createElement('button');
+      const handler = vi.fn();
+      button.addEventListener('mousedown', handler);
+      container.appendChild(button);
+      document.body.appendChild(container);
+
+      const instance = blokr(container);
+      instance.lock({ scope: 'outside' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      button.dispatchEvent(event);
+
+      expect(handler).toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(container);
+    });
+  });
+
+  describe('Target-specific Event Blocking (scope: self)', () => {
+    it('should block events on target itself', () => {
+      const target = document.createElement('button');
+      const handler = vi.fn();
+      target.addEventListener('mousedown', handler);
+      document.body.appendChild(target);
+
+      const instance = blokr(target);
+      instance.lock({ scope: 'self' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      target.dispatchEvent(event);
+
+      expect(handler).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(target);
+    });
+
+    it('should allow events on child elements with scope self', () => {
+      const parent = document.createElement('div');
+      const child = document.createElement('button');
+      const handler = vi.fn();
+      child.addEventListener('mousedown', handler);
+      parent.appendChild(child);
+      document.body.appendChild(parent);
+
+      const instance = blokr(parent);
+      instance.lock({ scope: 'self' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      child.dispatchEvent(event);
+
+      expect(handler).toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(parent);
+    });
+
+    it('should allow events outside target with scope self', () => {
+      const target = document.createElement('div');
+      const outside = document.createElement('button');
+      const handler = vi.fn();
+      outside.addEventListener('mousedown', handler);
+      document.body.appendChild(target);
+      document.body.appendChild(outside);
+
+      const instance = blokr(target);
+      instance.lock({ scope: 'self' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      outside.dispatchEvent(event);
+
+      expect(handler).toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(target);
+      document.body.removeChild(outside);
     });
   });
 
@@ -190,74 +380,200 @@ describe('Event Blocking Integration', () => {
     it('should stop immediate propagation of blocked events', () => {
       const handler1 = vi.fn();
       const handler2 = vi.fn();
+      const element = document.createElement('button');
+      element.addEventListener('mousedown', handler1);
+      element.addEventListener('mousedown', handler2);
+      document.body.appendChild(element);
 
-      testElement.addEventListener('mousedown', handler1);
-      testElement.addEventListener('mousedown', handler2);
+      const instance = blokr();
+      instance.lock();
 
-      blokr.lock();
-
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      testElement.dispatchEvent(mousedownEvent);
+      element.dispatchEvent(event);
 
       expect(handler1).not.toHaveBeenCalled();
       expect(handler2).not.toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
     });
 
     it('should prevent default behavior of blocked events', () => {
-      blokr.lock();
+      const element = document.createElement('a');
+      element.href = '#';
+      document.body.appendChild(element);
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const instance = blokr();
+      instance.lock();
+
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      const preventDefaultSpy = vi.spyOn(mousedownEvent, 'preventDefault');
-
-      testElement.dispatchEvent(mousedownEvent);
+      const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+      element.dispatchEvent(event);
 
       expect(preventDefaultSpy).toHaveBeenCalled();
+
+      instance.unlock();
+      document.body.removeChild(element);
+    });
+  });
+
+  describe('Multiple Independent Locks', () => {
+    it('should support independent locks on different targets', () => {
+      const container1 = document.createElement('div');
+      const button1 = document.createElement('button');
+      const handler1 = vi.fn();
+      button1.addEventListener('mousedown', handler1);
+      container1.appendChild(button1);
+      document.body.appendChild(container1);
+
+      const container2 = document.createElement('div');
+      const button2 = document.createElement('button');
+      const handler2 = vi.fn();
+      button2.addEventListener('mousedown', handler2);
+      container2.appendChild(button2);
+      document.body.appendChild(container2);
+
+      const instance1 = blokr(container1);
+      const instance2 = blokr(container2);
+
+      // Lock only container1
+      instance1.lock();
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      button1.dispatchEvent(event);
+      button2.dispatchEvent(event);
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalled();
+
+      // Lock container2
+      instance2.lock();
+      handler2.mockClear();
+
+      button1.dispatchEvent(event);
+      button2.dispatchEvent(event);
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).not.toHaveBeenCalled();
+
+      instance1.unlock();
+      instance2.unlock();
+      document.body.removeChild(container1);
+      document.body.removeChild(container2);
+    });
+
+    it('should respect each instance scope independently', () => {
+      const container1 = document.createElement('div');
+      const button1 = document.createElement('button');
+      const handler1 = vi.fn();
+      button1.addEventListener('mousedown', handler1);
+      container1.appendChild(button1);
+      document.body.appendChild(container1);
+
+      const container2 = document.createElement('div');
+      const button2 = document.createElement('button');
+      const handler2 = vi.fn();
+      button2.addEventListener('mousedown', handler2);
+      container2.appendChild(button2);
+      document.body.appendChild(container2);
+
+      const outside = document.createElement('button');
+      const outsideHandler = vi.fn();
+      outside.addEventListener('mousedown', outsideHandler);
+      document.body.appendChild(outside);
+
+      const instance1 = blokr(container1);
+      const instance2 = blokr(container2);
+
+      // Container1: scope inside (blocks events inside container1)
+      instance1.lock({ scope: 'inside' });
+      // Container2: scope outside (blocks events outside container2)
+      instance2.lock({ scope: 'outside' });
+
+      const event = new MouseEvent('mousedown', {
+        bubbles: true,
+        cancelable: true
+      });
+
+      // Event inside container1 - should be blocked by instance1
+      button1.dispatchEvent(event);
+      expect(handler1).not.toHaveBeenCalled();
+
+      // Event inside container2 - should not be blocked (outside scope)
+      button2.dispatchEvent(event);
+      expect(handler2).toHaveBeenCalled();
+
+      // Event outside both containers - should be blocked by instance2
+      outside.dispatchEvent(event);
+      expect(outsideHandler).not.toHaveBeenCalled();
+
+      instance1.unlock();
+      instance2.unlock();
+      document.body.removeChild(container1);
+      document.body.removeChild(container2);
+      document.body.removeChild(outside);
     });
   });
 
   describe('Lock/Unlock State Changes', () => {
     it('should allow events after unlocking', () => {
-      const mousedownHandler = vi.fn();
-      testElement.addEventListener('mousedown', mousedownHandler);
+      const handler = vi.fn();
+      const element = document.createElement('button');
+      element.addEventListener('mousedown', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
-      blokr.unlock();
+      const instance = blokr();
+      instance.lock();
+      instance.unlock();
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      testElement.dispatchEvent(mousedownEvent);
+      element.dispatchEvent(event);
 
-      expect(mousedownHandler).toHaveBeenCalled();
+      expect(handler).toHaveBeenCalled();
+
+      document.body.removeChild(element);
     });
 
     it('should handle rapid lock/unlock cycles', () => {
-      const mousedownHandler = vi.fn();
-      testElement.addEventListener('mousedown', mousedownHandler);
+      const handler = vi.fn();
+      const element = document.createElement('button');
+      element.addEventListener('mousedown', handler);
+      document.body.appendChild(element);
 
-      blokr.lock();
-      blokr.unlock();
-      blokr.lock();
-      blokr.unlock();
+      const instance = blokr();
 
-      const mousedownEvent = new MouseEvent('mousedown', {
+      const event = new MouseEvent('mousedown', {
         bubbles: true,
         cancelable: true
       });
 
-      testElement.dispatchEvent(mousedownEvent);
+      // Rapid cycle
+      instance.lock();
+      instance.unlock();
+      instance.lock();
+      instance.unlock();
 
-      expect(mousedownHandler).toHaveBeenCalled();
+      element.dispatchEvent(event);
+
+      expect(handler).toHaveBeenCalled();
+
+      document.body.removeChild(element);
     });
   });
 });
