@@ -8,7 +8,7 @@ export default defineConfig({
     minify: false,
     lib: {
       entry: 'src/index.ts',
-      name: 'Blokr',
+      name: 'blokr',
       formats: ['es', 'umd'],
       fileName: format => format === 'es' ? 'index.js' : 'blokr.js',
     },
@@ -16,15 +16,17 @@ export default defineConfig({
       output: {
         exports: 'default',
         plugins: [
-          terser(),
           license({
             banner: '@license\nCopyright 2025 KNOWLEDGECODE\nSPDX-License-Identifier: MIT'
-          })
+          }),
+          terser()
         ]
       }
     }
   },
   plugins: [
-    dts()
+    dts({
+      include: ['src/**/*']
+    })
   ]
 });
