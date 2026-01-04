@@ -1,84 +1,95 @@
 import lock from './lock.ts';
+import type { Filter } from './lock.ts';
+
+export type Scope = 'inside' | 'outside' | 'self';
+
+export interface Options {
+  scope?: Scope;
+  timeout?: number;
+}
+
+const blokrs = new WeakMap<Element | typeof globalThis, Blokr>();
 
 class Blokr {
-  private _timeout: number;
+  private _target: Element | undefined;
 
-  private _timerId: number;
+  private _timerId: number | undefined;
 
-  private _counter: number;
+  private _filter: Filter | undefined;
 
   /**
    * Creates the Blokr singleton instance.
    */
-  constructor () {
-    this._timeout = 10000;  // Default timeout of 10 seconds
-    this._timerId = 0;
-    this._counter = 0;
+  constructor (target?: Element) {
+    this._target = target;
+    this._timerId = undefined;
   }
 
   /**
-   * Prevents user interactions.
+   * Locks user interactions with optional timeout and scope configuration.
+   * Returns false if already locked without making any changes.
+   * @param [options] - Lock configuration options.
+   * @returns true if lock was applied, false if already locked.
    */
-  lock () {
-    lock.on();
-    this._counter++;
+  lock (options?: Options) {
+    if (this.isLocked()) {
+      return false;
+    }
 
-    if (this._timerId) {
-      self.clearTimeout(this._timerId);
-      this._timerId = 0;
+    const scope = options?.scope ?? 'inside';
+    const timeout = options?.timeout ?? 0;
+
+    this._filter = (eventTarget: Element) => {
+      if (this._target) {
+        if (scope === 'self') {
+          return this._target === eventTarget;
+        }
+        const contains = this._target.contains(eventTarget);
+        // For 'outside' scope, block events outside target; otherwise block events inside target
+        return scope === 'outside' ? !contains : contains;
+      }
+      // No target specified: block all events
+      return true;
+    };
+    lock.register(this._filter);
+
+    if (timeout > 0) {
+      this._timerId = globalThis.setTimeout(() => this.unlock(), timeout);
     }
-    if (this._timeout) {
-      this._timerId = self.setTimeout(() => {
-        this._timerId = 0;
-        this._counter = 0;
-        lock.off();
-      }, this._timeout);
-    }
+
+    return true;
   }
 
   /**
-   * Checks if user interactions are currently prevented.
-   * @returns {boolean} Returns true if interactions are blocked, false otherwise.
+   * Checks if user interactions are currently locked.
+   * @returns true if locked, false otherwise.
    */
   isLocked () {
-    return this._counter > 0;
+    return !!this._filter;
   }
 
   /**
-   * Sets the timeout duration for automatic unlock.
-   * @param timeout - The timeout in milliseconds. Set to 0 to disable automatic unlock. Negative values are treated as 0.
-   * @returns {boolean} Returns true if the timeout was set successfully, false if currently locked.
+   * Unlocks user interactions and clears any pending timeout.
+   * Safe to call even when not locked.
    */
-  setTimeout(timeout: number) {
-    if (!this.isLocked()) {
-      this._timeout = timeout < 0 ? 0 : timeout;
-      return true;
+  unlock () {
+    if (this._timerId) {
+      globalThis.clearTimeout(this._timerId);
+      this._timerId = undefined;
     }
-    return false;
-  }
-
-  /**
-   * Decrements the internal counter and releases the lock when the counter reaches zero.
-   * If abort is true, the counter is reset to zero immediately, effectively releasing the lock.
-   * Clears any pending timeout and triggers the unlock event.
-   * @param abort - If true, immediately resets the counter to zero and releases the lock
-   */
-  unlock (abort = false) {
-    if (this._counter > 0) {
-      this._counter--;
-
-      if (abort) {
-        this._counter = 0;
-      }
-      if (this._counter === 0) {
-        if (this._timerId) {
-          self.clearTimeout(this._timerId);
-          this._timerId = 0;
-        }
-        lock.off();
-      }
+    if (this._filter) {
+      lock.unregister(this._filter);
     }
+    this._filter = undefined;
   }
 }
 
-export default new Blokr();
+const blokr = (target?: Element) => {
+  return blokrs.get(target ?? globalThis) ?? (() => {
+    const instance = new Blokr(target);
+    blokrs.set(target ?? globalThis, instance);
+    return instance;
+  })();
+};
+
+export default blokr;
