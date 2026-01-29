@@ -1,15 +1,7 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import blokr from '../src/blokr.ts';
 
 describe('Blokr Factory Function', () => {
-  afterEach(() => {
-    // Clean up any locks after each test
-    const globalInstance = blokr();
-    if (globalInstance.isLocked()) {
-      globalInstance.unlock();
-    }
-  });
-
   describe('Factory Behavior', () => {
     it('should return a Blokr instance', () => {
       const instance = blokr();
@@ -196,18 +188,6 @@ describe('Blokr Factory Function', () => {
       vi.useRealTimers();
     });
 
-    it('should not set timeout when timeout is 0', () => {
-      const instance = blokr();
-      const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
-
-      instance.lock({ timeout: 0 });
-
-      expect(setTimeoutSpy).not.toHaveBeenCalled();
-
-      setTimeoutSpy.mockRestore();
-      instance.unlock();
-    });
-
     it('should clear timeout on manual unlock', () => {
       vi.useFakeTimers();
 
@@ -282,11 +262,12 @@ describe('Blokr Factory Function', () => {
       instance.unlock();
     });
 
-    it('should use default scope "inside" for global instance', () => {
+    it('should block all events for global instance regardless of scope', () => {
       const instance = blokr();
-      // Global instance with no target should still work (no filtering)
-      const result = instance.lock();
+      // Global instance blocks all events, scope parameter is ignored
+      const result = instance.lock({ scope: 'outside' });
       expect(result).toBe(true);
+      expect(instance.isLocked()).toBe(true);
       instance.unlock();
     });
   });

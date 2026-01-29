@@ -11,10 +11,19 @@ export interface Options {
 const blokrs = new WeakMap<Element | typeof globalThis, Blokr>();
 
 class Blokr {
+  /**
+   * The target element whose interactions are to be managed.
+   */
   private _target: Element | undefined;
 
-  private _timerId: number | undefined;
+  /**
+   * Timer ID for the optional timeout to auto-unlock interactions.
+   */
+  private _timerId: ReturnType<typeof setTimeout> | undefined;
 
+  /**
+   * Filter function to determine which events to block.
+   */
   private _filter: Filter | undefined;
 
   /**
@@ -54,7 +63,7 @@ class Blokr {
     lock.register(this._filter);
 
     if (timeout > 0) {
-      this._timerId = globalThis.setTimeout(() => this.unlock(), timeout);
+      this._timerId = setTimeout(() => this.unlock(), timeout);
     }
 
     return true;
@@ -74,7 +83,7 @@ class Blokr {
    */
   unlock () {
     if (this._timerId) {
-      globalThis.clearTimeout(this._timerId);
+      clearTimeout(this._timerId);
       this._timerId = undefined;
     }
     if (this._filter) {
@@ -84,6 +93,12 @@ class Blokr {
   }
 }
 
+/**
+ * Factory function to get or create a Blokr instance for a given target element.
+ * @param target - Optional target element to manage interactions for.
+ * @returns Blokr instance associated with the target element.
+ * @public
+ */
 const blokr = (target?: Element) => {
   return blokrs.get(target ?? globalThis) ?? (() => {
     const instance = new Blokr(target);
