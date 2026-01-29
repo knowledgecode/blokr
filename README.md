@@ -5,50 +5,63 @@
 
 Lightweight library to block user interactions in browsers.
 
-## ⚠️ Breaking Changes in v0.3.0
-
-Version 0.3.0 introduces significant API changes from v0.2.x:
-
-- **Factory function instead of singleton**: `blokr()` returns an instance instead of being a singleton object
-- **Options-based API**: `lock({ timeout, scope })` instead of separate `setTimeout()` method
-- **No reference counting**: Multiple `lock()` calls return `false` instead of incrementing a counter
-- **No `setTimeout()` method**: Use `lock({ timeout })` option instead
-- **No `unlock(abort)` parameter**: `unlock()` always releases the lock immediately
-
-**Migration guide:** See [Migration from v0.2.x](#migration-from-v02x) below.
-
-**Note:** This library is under active development. Future versions may introduce additional breaking changes. Please refer to the changelog before upgrading.
-
 ## Features
 
 - **Factory-based API**: Support for both global and element-specific locks
-- **Scope filtering**: Control which events to block (`inside`, `outside`, `self`)
 - **No overlay elements**: Blocks interactions without adding elements to the DOM
-- **All interaction types**: Blocks mouse, keyboard, touch, and wheel events
+- **Scope filtering**: Control which events to block (`inside`, `outside`, `self`)
 - **Per-lock timeout**: Optional automatic unlock after specified time
-- **No dependencies**: Zero external dependencies
 - **TypeScript**: Full type support included
+- **React Hook**: Built-in `useBlokr()` hook for React components
 
 ## Why Blokr?
 
-### Problems with CSS-based Solutions
+### Comparison with Alternative Solutions
 
-While CSS `pointer-events: none` can disable interactions, it has several limitations:
+Blokr provides a unique approach to blocking user interactions. Here's how it compares with other techniques:
 
-1. **Cannot block keyboard events**: Tab navigation and keyboard shortcuts still work
-2. **No timeout protection**: No automatic unlock if code fails to re-enable interactions
-3. **Requires DOM manipulation**: Must add/remove CSS classes or inline styles
-4. **Cannot scope events**: Cannot selectively block events inside/outside an element
-5. **z-index issues**: Overlay approaches require careful z-index management
+#### The `inert` Attribute
 
-### How Blokr Solves These Problems
+The HTML5 `inert` attribute marks an element as "inert," preventing user interactions including keyboard navigation.
 
-- ✅ **Blocks all interaction types**: Mouse, keyboard, touch, and wheel events
-- ✅ **Optional timeout protection**: Automatically unlock after specified time
-- ✅ **No DOM changes**: Works via event listeners only
-- ✅ **Flexible scoping**: Block events inside, outside, or only on specific elements
-- ✅ **No z-index conflicts**: No overlay elements needed
-- ✅ **TypeScript support**: Full type definitions included
+#### CSS `pointer-events: none`
+
+CSS `pointer-events: none` disables mouse and touch events on elements, but cannot block keyboard events or prevent tab navigation.
+
+#### The `<dialog>` Element
+
+The HTML5 `<dialog>` element creates a modal dialog but adds a DOM element and provides limited scope flexibility for non-modal use cases.
+
+#### Comparison Summary
+
+| Feature | Blokr | inert | pointer-events | dialog |
+|---------|-------|-------|----------------|--------|
+| Blocks keyboard events | ✅ | ✅ | ❌ | ✅ |
+| Global interaction lock | ✅ | ❌ | ❌ | ❌ |
+| Inside/outside scope | ✅ | ❌ | ❌ | ❌ |
+| Timeout protection | ✅ | ❌ | ❌ | ❌ |
+| No DOM overlay | ✅ | ✅ | ✅ | ❌ |
+| No DOM modifications | ✅ | ❌ | ✅ | ❌ |
+
+**Key differentiators:**
+
+- **Global interaction lock**: Blokr can block interactions across the entire page, not just within specific elements
+- **Inside/outside scope**: Unique ability to selectively block events inside or outside a target element
+- **Timeout protection**: Automatic unlock prevents permanent locks due to errors or forgotten cleanup
+- **No DOM modifications**: Works purely via event listeners without modifying DOM structure or attributes
+
+## What's New in v0.4.0
+
+- **React Hook support**: New `useBlokr()` hook for React applications (React 18+ required)
+
+## ⚠️ Breaking Changes in v0.4.0
+
+- **UMD format removed**: CDN usage now requires ES modules only (`blokr/dist/index.js`)
+- **No breaking changes to core API**: All v0.3.0 JavaScript APIs remain unchanged
+
+For changes from v0.2.x, see the [Migration from v0.2.x](#migration-from-v02x) section below.
+
+**Note:** This library is under active development. Future versions may introduce additional breaking changes. Please refer to the changelog before upgrading.
 
 ## Installation
 
@@ -56,15 +69,26 @@ While CSS `pointer-events: none` can disable interactions, it has several limita
 npm install blokr
 ```
 
-## Usage
+### React Hook Support
 
-### Basic Usage (ES Modules)
+The `useBlokr()` React Hook is included in the same package. React 18.0+ or React 19.0+ is required to use the hook:
+
+```bash
+npm install blokr react
+```
+
+The `react` package is an optional peer dependency. If you don't use React, you can ignore this requirement.
+
+## Usage (Vanilla)
+
+### Basic Usage
 
 ```typescript
 import blokr from 'blokr';
 
 // Global lock - blocks all user interactions
 const instance = blokr();
+
 instance.lock();
 
 // Check if locked
@@ -90,7 +114,7 @@ instance.lock();
 // Or explicitly specify scope
 instance.lock({ scope: 'inside' });   // Block events inside container
 instance.lock({ scope: 'outside' });  // Block events outside container
-instance.lock({ scope: 'self' });     // Block events on container itself only
+instance.lock({ scope: 'self' });     // Block events on the container only
 ```
 
 ### Auto-timeout
@@ -105,21 +129,6 @@ instance.lock({ timeout: 5000 });
 
 // Disable timeout (lock indefinitely)
 instance.lock({ timeout: 0 });
-```
-
-### CDN Usage (UMD)
-
-```html
-<script src="https://unpkg.com/blokr/dist/blokr.js"></script>
-<script>
-  // Note: global name is 'blokr' (lowercase) in v0.3.0
-  const instance = window.blokr();
-  instance.lock();
-
-  setTimeout(() => {
-    instance.unlock();
-  }, 3000);
-</script>
 ```
 
 ### CDN Usage (ES Modules)
@@ -166,9 +175,9 @@ Locks user interactions. Returns `true` if lock was applied, `false` if already 
 **Parameters:**
 - `options.timeout` (optional): Auto-unlock timeout in milliseconds. Default: `0` (no timeout)
 - `options.scope` (optional): Event blocking scope. Default: `'inside'`
-  - `'inside'`: Block events inside target element (default)
-  - `'outside'`: Block events outside target element
-  - `'self'`: Block events on target element itself only
+  - `'inside'`: Block events inside the target element (default)
+  - `'outside'`: Block events outside the target element
+  - `'self'`: Block events on the target element only
 
 **Returns:** `true` if lock was applied, `false` if already locked
 
@@ -320,6 +329,107 @@ async function loadData() {
 }
 ```
 
+## React Hook
+
+The `useBlokr()` hook provides a React-friendly way to manage user interaction blocking. It works seamlessly with the factory-based API and manages refs automatically.
+
+### Import
+
+```typescript
+import { useBlokr } from 'blokr/react';
+```
+
+### Basic Usage
+
+```tsx
+import { useBlokr } from 'blokr/react';
+
+export function PageWithLinks() {
+  const { target, lock, unlock, isLocked } = useBlokr<HTMLDivElement>();
+
+  const handleLock = () => {
+    lock({ timeout: 5000 }); // Auto-unlock after 5 seconds
+  };
+
+  return (
+    <>
+      <div ref={target}>
+        <a href="/page1">Go to Page 1</a>
+      </div>
+      <button onClick={handleLock}>Lock Link</button>
+      <button onClick={unlock}>Unlock</button>
+    </>
+  );
+}
+```
+
+### Options
+
+The `lock()` function accepts the same options as the core API:
+
+```tsx
+const { target, lock, unlock } = useBlokr<HTMLDivElement>();
+
+// With timeout (auto-unlock after 5 seconds)
+lock({ timeout: 5000 });
+
+// With scope
+lock({ scope: 'inside' });    // Block inside the element
+lock({ scope: 'outside' });   // Block outside the element
+lock({ scope: 'self' });      // Block on the element only
+
+// With both options
+lock({ scope: 'inside', timeout: 5000 });
+```
+
+### Hook API
+
+#### `useBlokr<T = Element>(allowGlobal?: boolean): { target: RefObject<T | null>; lock: (options?: Options) => boolean; unlock: () => void; isLocked: () => boolean }`
+
+Returns an object containing a ref and three control functions for managing user interaction blocking.
+
+**Type Parameters:**
+- `T` (optional): The DOM element type. Default: `Element`
+
+**Parameters:**
+- `allowGlobal` (optional): If `true`, enables global lock mode that blocks interactions across the entire page instead of a specific element. When using global lock, the `target` ref is not needed. Default: `false`
+
+**Returns:** An object with:
+- `target`: A React ref to assign to the target element (`RefObject<T | null>`)
+- `lock`: Function to lock user interactions on the element (`(options?: Options) => boolean`)
+- `unlock`: Function to unlock user interactions (`() => void`)
+- `isLocked`: Function to check if currently locked (`() => boolean`)
+
+**Parameters (lock function):**
+- `options.timeout` (optional): Auto-unlock timeout in milliseconds
+- `options.scope` (optional): Event blocking scope (`'inside'`, `'outside'`, or `'self'`)
+
+**Returns (lock function):** `true` if lock was applied, `false` if already locked or if the ref is not set (when using element-specific lock)
+
+### allowGlobal Parameter
+
+The `allowGlobal` parameter enables global lock mode, which blocks user interactions across the entire page instead of scoping to a specific element.
+
+**Global Lock (`allowGlobal=true`):**
+```tsx
+// No need to destructure 'target' since we're not using element-specific locking
+const { lock, unlock, isLocked } = useBlokr(true);
+
+// Locks all interactions across the entire page
+lock();  // Blocks all user interactions globally
+```
+
+**Element-Specific Lock (Default: `allowGlobal=false`):**
+```tsx
+const { target, lock, unlock, isLocked } = useBlokr<HTMLDivElement>();
+
+// Attach target to an element
+<div ref={target}>Content</div>
+
+// Lock only affects this specific element (by default, scope='inside')
+lock();  // Blocks interactions inside the div
+```
+
 ## Migration from v0.2.x
 
 ### API Changes
@@ -374,9 +484,7 @@ instance.lock({ scope: 'self' });
 
 ## Limitations
 
-- **Only blocks genuine user interactions**: Programmatically triggered events (e.g., `element.click()`) are not blocked.
-- **Event listener priority**: Event listeners are registered at the capture phase. May not work correctly when used with event delegation libraries. Loading Blokr before other libraries may resolve this issue.
-- **Target-specific locks accept Elements only**: The `blokr(target)` factory function only accepts DOM `Element` nodes. To block interactions across the entire page, use the global lock: `blokr()` (without a target parameter).
+- **Event listener priority**: Event listeners are registered at the capture phase. May not work correctly when used with event delegation libraries.
 
 ## License
 
