@@ -3,6 +3,7 @@ import { defineConfig } from 'eslint/config';
 import eslint from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import stylistic from '@stylistic/eslint-plugin';
+import reactHooks from 'eslint-plugin-react-hooks';
 
 export default defineConfig(
   {
@@ -16,6 +17,7 @@ export default defineConfig(
   eslint.configs.recommended,
   tseslint.configs.strictTypeChecked,
   tseslint.configs.stylisticTypeChecked,
+  reactHooks.configs.flat.recommended,
   {
     plugins: {
       '@stylistic': stylistic
@@ -29,10 +31,7 @@ export default defineConfig(
     },
     rules: {
       '@typescript-eslint/no-confusing-void-expression': ['error', { ignoreArrowShorthand: true }],
-      '@typescript-eslint/no-extraneous-class': 'off',
-      '@typescript-eslint/no-unused-vars': ['error', { caughtErrors: 'none' }],
-      '@typescript-eslint/restrict-template-expressions': ['error', { allowNever: true }],
-      '@typescript-eslint/unified-signatures': ['error', { ignoreDifferentlyNamedParameters: true }],
+      '@typescript-eslint/no-empty-function': 'off',
 
       'accessor-pairs': 'error',
       'array-callback-return': 'error',
