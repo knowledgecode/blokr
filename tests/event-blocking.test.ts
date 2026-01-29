@@ -1,26 +1,18 @@
-import { describe, it, expect, afterEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import blokr from '../src/blokr.ts';
 
 describe('Event Blocking Integration', () => {
-  afterEach(() => {
-    // Clean up any locks after each test
-    const globalInstance = blokr();
-    if (globalInstance.isLocked()) {
-      globalInstance.unlock();
-    }
-  });
-
   describe('Global Event Blocking', () => {
-    it('should block mousedown events when locked globally', () => {
+    it('should block click events when locked globally', () => {
       const handler = vi.fn();
       const element = document.createElement('button');
-      element.addEventListener('mousedown', handler);
+      element.addEventListener('click', handler);
       document.body.appendChild(element);
 
       const instance = blokr();
       instance.lock();
 
-      const event = new MouseEvent('mousedown', {
+      const event = new MouseEvent('click', {
         bubbles: true,
         cancelable: true
       });
